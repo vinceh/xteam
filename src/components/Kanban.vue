@@ -1,12 +1,11 @@
 <template>
   <div>
-    <div class="overworld"
-         v-if="loadingDetail">
-      <img src="https://dsgcewkenvygd.cloudfront.net/assets/balls.svg" class="loading-gif"/>
-    </div>
     <modal-card v-if="showDetail"
-                :issue="modalCard"
-                @close="closeCard"></modal-card>
+                :issue-id="modalCardId"
+                @close="closeCard"
+                @issueInlineUpdated="updateInlineIssue"
+                @issueStateUpdated="updateIssueState"
+                :project-assets="projectAssets"></modal-card>
     <div class="header"></div>
     <div class="nav">
       <div class="logo">
@@ -74,14 +73,15 @@
 <script>
 import Card from './Card'
 import ModalCard from './ModalCard/ModalCard'
+import _ from 'lodash'
 
 export default {
+  props: ['projectAssets'],
   data () {
     return {
       stages: [],
-      loadingDetail: false,
       showDetail: false,
-      modalCard: null
+      modalCardId: null
     }
   },
   components: {
@@ -89,15 +89,41 @@ export default {
   },
   methods: {
     openCard (id) {
-      this.loadingDetail = true
-      this.$http.get('http://localhost:3001/issues/' + id).then((res) => {
-        this.loadingDetail = false
-        this.modalCard = res.data
-        this.showDetail = true
-      })
+      this.showDetail = true
+      this.modalCardId = id
     },
     closeCard () {
       this.showDetail = false
+      this.modalCardId = null
+    },
+    updateInlineIssue (newIssue) {
+      _.forIn(this.stages, (stage, key) => {
+        if (stage.state.label === newIssue.state) {
+          this.stages[key].issues.splice(
+            _.findIndex(stage.issues, (o) => { return o.id === newIssue.id }),
+            1,
+            newIssue
+          )
+        }
+      })
+    },
+    updateIssueState (newIssue) {
+      _.forIn(this.stages, (stage, stageKey) => {
+        _.forIn(stage.issues, (issue, issueKey) => {
+          if (issue.id === newIssue.id) {
+            this.stages[stageKey].issues.splice(
+              issueKey,
+              1
+            )
+          }
+        })
+      })
+
+      _.forIn(this.stages, (stage, key) => {
+        if (stage.state.label === newIssue.state) {
+          this.stages[key].issues.push(newIssue)
+        }
+      })
     }
   },
   created () {
