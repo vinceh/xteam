@@ -244,15 +244,22 @@
                @click="currentPicker = 'epic'">
             <h3>Epic</h3>
             <div class="epic-label">
-              {{ issue.epic }}
+              <span v-if="issue.epic">
+                {{ issue.epic }}
+              </span>
+              <span v-if="!issue.epic">
+                No Epic
+              </span>
             </div>
           </div>
           <list-picker :list-items="epicItems()"
                        title-text="Pick Epic"
+                       empty-label="No Epic"
                        list-type="listSelect"
                        :allow-create="true"
                        :has-search-input="true"
-                       @submit="editType"
+                       @submit="editEpic"
+                       @create="createEpic"
                        v-if="currentPicker === 'epic'"
                        @close="closePicker"></list-picker>
         </div>
@@ -558,6 +565,39 @@ export default {
       }
 
       this.$http.post('http://localhost:3001/issues/' + this.issue.id + '/edit_type', data).then((res) => {
+        this.issue = res.data.detailed_issue
+        this.loading = false
+        this.closePicker()
+        this.$emit('issueInlineUpdated', res.data.simple_issue)
+      })
+    },
+    editEpic (epic) {
+      this.loading = true
+      var data = {}
+      if (epic.originalEpic) {
+        this.issue.epic = epic.originalEpic.name
+        data = {
+          epic_id: epic.originalEpic.id
+        }
+      } else {
+        this.issue.epic = null
+      }
+
+      this.$http.post('http://localhost:3001/issues/' + this.issue.id + '/edit_epic', data).then((res) => {
+        this.issue = res.data.detailed_issue
+        this.loading = false
+        this.closePicker()
+        this.$emit('issueInlineUpdated', res.data.simple_issue)
+      })
+    },
+    createEpic (epic) {
+      this.loading = true
+      this.issue.epic = epic
+      var data = {
+        epic_name: epic
+      }
+
+      this.$http.post('http://localhost:3001/issues/' + this.issue.id + '/create_epic', data).then((res) => {
         this.issue = res.data.detailed_issue
         this.loading = false
         this.closePicker()

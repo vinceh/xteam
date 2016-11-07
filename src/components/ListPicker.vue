@@ -63,14 +63,18 @@ export default {
     itemClass (item, index) {
       return {
         highlighted: this.highlightedItem === item,
-        empty: this.emptyLabel && index === 0
+        empty: this.emptyLabel === item.text
       }
     },
     showCreate () {
       return this.allowCreate && this.filteredItems.length === 0
     },
     chooseItem () {
-      this.$emit('submit', this.highlightedItem)
+      if (this.highlightedItem) {
+        this.$emit('submit', this.highlightedItem)
+      } else if (this.allowCreate) {
+        this.$emit('create', this.filterInput)
+      }
     },
     closePicker () {
       this.$emit('close')
@@ -225,7 +229,7 @@ export default {
         border-bottom: none;
       }
       &.empty {
-        color: #888;
+        color: #aaa;
         font-style: italic;
       }
       &.selected {
