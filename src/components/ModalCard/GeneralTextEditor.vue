@@ -3,9 +3,10 @@
     <textarea :disabled="submitting"
               v-model="newText"
               :placeholder="this.placeholder"
-              @keydown.enter.stop.prevent
+              @keydown.enter.stop.prevent="checkEnterSubmit"
+              @keydown.esc.stop.prevent="cancelAction"
               v-on:keydown="checkSubmit($event)"></textarea>
-    <div class="subtask-actions">
+    <div class="actions">
       <button type="button"
               class="primary"
               @click="submitAction"
@@ -26,7 +27,7 @@
 import autosize from 'autosize'
 
 export default {
-  props: ['text', 'allowEmpty', 'allowDelete', 'identifier', 'submitLabel', 'placeholder'],
+  props: ['text', 'allowEmpty', 'allowDelete', 'allowEnterSubmit', 'identifier', 'submitLabel', 'placeholder'],
   data () {
     return {
       newText: this.text.slice(0),
@@ -39,6 +40,11 @@ export default {
         console.log('yup submitting')
       }
     },
+    checkEnterSubmit () {
+      if (this.allowEnterSubmit) {
+        this.submitAction()
+      }
+    },
     checkEmpty () {
       if (!this.allowEmpty && this.newText === '') {
         return true
@@ -47,8 +53,15 @@ export default {
     submitAction () {
       if (!this.submitting) {
         this.submitting = true
-        this.$emit('submit', this.newText.trim(), this.identifier)
+        this.$emit('submit', this.newText.trim(), this.identifier, this.clearForm)
       }
+    },
+    clearForm () {
+      this.submitting = false
+      this.newText = ''
+      setTimeout(() => {
+        this.focusTextarea()
+      })
     },
     cancelAction () {
       if (!this.submitting) {
@@ -59,13 +72,16 @@ export default {
       if (!this.submitting) {
         this.$emit('delete', this.identifier)
       }
+    },
+    focusTextarea () {
+      var textarea = this.$el.querySelector('textarea')
+      autosize(textarea)
+      textarea.focus()
+      textarea.select()
     }
   },
   mounted () {
-    var textarea = this.$el.querySelector('textarea')
-    autosize(textarea)
-    textarea.focus()
-    textarea.select()
+    this.focusTextarea()
   }
 }
 </script>

@@ -1,11 +1,5 @@
 <template>
   <div>
-    <modal-card v-if="showDetail"
-                :issue-id="modalCardId"
-                @close="closeCard"
-                @issueInlineUpdated="updateInlineIssue"
-                @issueStateUpdated="updateIssueState"
-                :project-assets="projectAssets"></modal-card>
     <div class="header"></div>
     <div class="nav">
       <div class="logo">
@@ -72,29 +66,21 @@
 
 <script>
 import Card from './Card'
-import ModalCard from './ModalCard/ModalCard'
 import _ from 'lodash'
+import { mapState } from 'vuex'
 
 export default {
-  props: ['projectAssets'],
-  data () {
-    return {
-      stages: [],
-      showDetail: false,
-      modalCardId: null
-    }
-  },
   components: {
-    Card, ModalCard
+    Card
   },
+  computed: mapState({
+    projectAssets: state => state.projectAssets,
+    stages: state => state.kanban.stages
+  }),
   methods: {
     openCard (id) {
-      this.showDetail = true
-      this.modalCardId = id
-    },
-    closeCard () {
-      this.showDetail = false
-      this.modalCardId = null
+      console.log('opening card')
+      this.$emit('openCard', id)
     },
     updateInlineIssue (newIssue) {
       _.forIn(this.stages, (stage, key) => {
@@ -127,9 +113,11 @@ export default {
     }
   },
   created () {
-    this.$http.get('http://localhost:3001/projects/1/kanbanDetails').then((res) => {
-      this.stages = res.data
-    })
+    this.$store.dispatch('getKanbanDetails', {project_id: 1})
+  },
+  mounted () {
+  },
+  beforeUpdate () {
   }
 }
 </script>

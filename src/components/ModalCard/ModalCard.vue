@@ -16,7 +16,7 @@
         <div class="summary">
           <div class="text"
                @click="beginEditingSummary"
-               v-if="!editingSummary">
+               v-show="!editingSummary">
             <span class="short">{{ issue.issue_key }}</span>
             {{ issue.summary }}
           </div>
@@ -46,7 +46,7 @@
                               :body="issue.description"
                               submit-label="Update Description"
                               :allow-empty="true"
-                              @update="updateDescription"
+                              @update="editDescription"
                               @cancel="closeDescriptionEditor"></description-editor>
         </div>
         <div class="detail-section checklist">
@@ -67,11 +67,18 @@
                 {{ task.description }}
               </div>
               <div class="input-wrap">
-                <subtask-editor :task="task"
-                                v-if="editingSubtask(task)"
-                                @edit-subtask="editSubtask"
-                                @stop-editing="stopEditingSubtask"
-                                @delete-subtask="deleteSubtask"></subtask-editor>
+                <general-text-editor :text="task.description"
+                                     :allow-empty="false"
+                                     :allow-delete="true"
+                                     :allow-enter-submit="true"
+                                     :identifier="task"
+                                     @submit="editSubtask"
+                                     @cancel="stopEditingSubtask"
+                                     @delete="deleteSubtask"
+                                     v-if="editingSubtask(task)"
+                                     submit-label="Update"
+                                     placeholder="Type and press <Enter>">
+                </general-text-editor>
               </div>
             </div>
             <div class="item add-item"
@@ -84,10 +91,17 @@
                 <span v-show="!addingNewSubtask">
                   add item...
                 </span>
-                <subtask-editor :task="null"
-                                v-if="addingNewSubtask"
-                                @add-subtask="addSubtask"
-                                @stop-editing="stopCreatingSubtask"></subtask-editor>
+                <general-text-editor :text="''"
+                                     :allow-empty="false"
+                                     :allow-delete="false"
+                                     :allow-enter-submit="true"
+                                     @submit="addSubtask"
+                                     @cancel="stopCreatingSubtask"
+                                     @delete="deleteSubtask"
+                                     v-if="addingNewSubtask"
+                                     submit-label="Add Subtask"
+                                     placeholder="Type and press <Enter>">
+                </general-text-editor>
               </div>
             </div>
           </div>
@@ -264,11 +278,28 @@
                        @close="closePicker"></list-picker>
         </div>
         <div class="section labels">
-          <div class="section-item">
+          <div class="section-item"
+               :class="{active: currentPicker === 'labels'}"
+               @click="currentPicker = 'labels'">
             <h3>Labels</h3>
             <div class="label"
-                  v-for="label in issue.labels">{{ label.label }}</div>
+                  v-for="label in issue.labels">
+              {{ label.label }}
+            </div>
+            <div class="no-labels"
+                 v-if="issue.labels.length === 0">
+              No Labels
+            </div>
           </div>
+          <list-picker :list-items="labelItems()"
+                       title-text="Labels"
+                       empty-label="Clear Labels"
+                       :allow-create="true"
+                       :has-search-input="true"
+                       @submit="toggleLabel"
+                       @create="createLabel"
+                       v-if="currentPicker === 'labels'"
+                       @close="closePicker"></list-picker>
         </div>
         <div class="section status date">
           <div class="section-item">
@@ -289,17 +320,16 @@
 <script>
 import moment from 'moment'
 import DescriptionEditor from './DescriptionEditor'
-import SubtaskEditor from './SubtaskEditor'
 import GeneralTextEditor from './GeneralTextEditor'
 import ListPicker from '../ListPicker'
 import SimpleNumberBox from '../SimpleNumberBox'
 import _ from 'lodash'
+import { mapState } from 'vuex'
 
 export default {
-  props: ['issueId', 'projectAssets'],
+  props: ['issueId'],
   components: {
     DescriptionEditor,
-    SubtaskEditor,
     GeneralTextEditor,
     ListPicker,
     SimpleNumberBox
@@ -309,7 +339,6 @@ export default {
       loading: false,
       descriptionEditorOpen: false,
       initialLoading: true,
-      issue: null,
       addingNewSubtask: false,
       newSubtaskBody: '',
       editingTask: null,
@@ -352,6 +381,18 @@ export default {
         }
       })
     },
+    labelItems () {
+      return this.projectAssets.labels.map((label) => {
+        var index = _.findIndex(this.issue.labels, (newLabels) => {
+          return newLabels.id === label.id
+        })
+        return {
+          text: label.label,
+          originalLabel: label,
+          checked: index >= 0
+        }
+      })
+    },
     fullName (person) {
       return person.first_name + ' ' + person.last_name
     },
@@ -364,13 +405,15 @@ export default {
       }
     },
     // description
-    updateDescription (newBody) {
+    editDescription (newBody) {
       this.loading = true
-      var data = {
-        description: newBody
+      var payload = {
+        issueId: this.issue.id,
+        data: {
+          description: newBody
+        }
       }
-      this.$http.post('http://localhost:3001/issues/' + this.issue.id + '/update_description', data).then((res) => {
-        this.issue = res.data
+      this.$store.dispatch('editDescription', payload).then(() => {
         this.loading = false
         this.closeDescriptionEditor()
       })
@@ -384,11 +427,13 @@ export default {
     // subtasks
     toggleSubtask (id) {
       this.loading = true
-      var data = {
-        subtask_id: id
+      var payload = {
+        issueId: this.issue.id,
+        data: {
+          subtask_id: id
+        }
       }
-      this.$http.post('http://localhost:3001/issues/' + this.issue.id + '/toggle_subtask', data).then((res) => {
-        this.issue = res.data
+      this.$store.dispatch('toggleSubtask', payload).then(() => {
         this.loading = false
       })
     },
@@ -396,23 +441,28 @@ export default {
       this.editingTask = null
       this.addingNewSubtask = true
     },
-    addSubtask (newBody) {
+    addSubtask (newBody, identifier = null, clear) {
       this.loading = true
-      var data = {
-        subtask_body: newBody
+      var payload = {
+        issueId: this.issue.id,
+        data: {
+          subtask_body: newBody
+        }
       }
-      this.$http.post('http://localhost:3001/issues/' + this.issue.id + '/add_subtask', data).then((res) => {
-        this.issue = res.data
+      this.$store.dispatch('addSubtask', payload).then(() => {
         this.loading = false
+        clear()
       })
     },
-    deleteSubtask (id) {
+    deleteSubtask (subtask) {
       this.loading = true
-      var data = {
-        subtask_id: id
+      var payload = {
+        issueId: this.issue.id,
+        data: {
+          subtask_id: subtask.id
+        }
       }
-      this.$http.post('http://localhost:3001/issues/' + this.issue.id + '/delete_subtask', data).then((res) => {
-        this.issue = res.data
+      this.$store.dispatch('deleteSubtask', payload).then(() => {
         this.loading = false
       })
     },
@@ -423,16 +473,18 @@ export default {
     editingSubtask (task) {
       return this.editingTask === task
     },
-    editSubtask (id, newBody) {
+    editSubtask (newBody, originalTask) {
       this.loading = true
-      var data = {
-        subtask_id: id,
-        subtask_body: newBody
+      var payload = {
+        issueId: this.issue.id,
+        data: {
+          subtask_id: originalTask.id,
+          subtask_body: newBody
+        }
       }
       this.editingTask.description = newBody
-      this.editingTask = null
-      this.$http.post('http://localhost:3001/issues/' + this.issue.id + '/edit_subtask', data).then((res) => {
-        this.issue = res.data
+      this.stopEditingSubtask()
+      this.$store.dispatch('editSubtask', payload).then(() => {
         this.loading = false
       })
     },
@@ -448,11 +500,13 @@ export default {
     },
     addComment (commentBody) {
       this.loading = true
-      var data = {
-        comment_body: commentBody
+      var payload = {
+        issueId: this.issue.id,
+        data: {
+          comment_body: commentBody
+        }
       }
-      this.$http.post('http://localhost:3001/issues/' + this.issue.id + '/add_comment', data).then((res) => {
-        this.issue = res.data
+      this.$store.dispatch('addComment', payload).then(() => {
         this.loading = false
         this.closeAddComment()
       })
@@ -463,14 +517,16 @@ export default {
     editComment (body, comment) {
       this.loading = true
       comment.body = body
-      var data = {
-        comment_id: comment.id,
-        comment_body: body
+      var payload = {
+        issueId: this.issue.id,
+        data: {
+          comment_id: comment.id,
+          comment_body: body
+        }
       }
-      this.$http.post('http://localhost:3001/issues/' + this.issue.id + '/edit_comment', data).then((res) => {
-        this.issue = res.data
+      this.$store.dispatch('editComment', payload).then(() => {
         this.loading = false
-        this.closeEditComment(comment)
+        this.closeAddComment()
       })
     },
     closeEditComment (comment) {
@@ -483,30 +539,33 @@ export default {
       if (window.confirm('Are you sure you want to delete this comment?')) {
         this.loading = true
         this.issue.comments = _.without(this.issue.comments, comment)
-        var data = {
-          comment_id: comment.id
+        var payload = {
+          issueId: this.issue.id,
+          data: {
+            comment_id: comment.id
+          }
         }
-        this.$http.post('http://localhost:3001/issues/' + this.issue.id + '/delete_comment', data).then((res) => {
-          this.issue = res.data
+        this.$store.dispatch('deleteComment', payload).then(() => {
           this.loading = false
+          this.closeAddComment()
         })
       }
     },
     // summary
-    beginEditingSummary () {
+    beginEditingSummary (e) {
       this.editingSummary = true
     },
     editSummary (newText) {
       this.loading = true
-      this.issue.summary = newText
-      var data = {
-        new_body: newText
+      var payload = {
+        issueId: this.issue.id,
+        data: {
+          new_body: newText
+        }
       }
-      this.$http.post('http://localhost:3001/issues/' + this.issue.id + '/edit_summary', data).then((res) => {
-        this.issue = res.data.detailed_issue
+      this.$store.dispatch('editSummary', payload).then(() => {
         this.loading = false
         this.cancelEditSummary()
-        this.$emit('issueUpdated', res.data.simple_issue)
       })
     },
     cancelEditSummary () {
@@ -515,31 +574,33 @@ export default {
     // assignee
     editHero (hero) {
       this.loading = true
-      var data = {}
+      var payload = {
+        issueId: this.issue.id,
+        data: {}
+      }
       if (hero.originalUser) {
         this.issue.assignees = [hero.originalUser]
-        data = {
+        payload.data = {
           user_id: hero.originalUser.id
         }
       } else {
         this.issue.assignees = []
       }
-
-      this.$http.post('http://localhost:3001/issues/' + this.issue.id + '/edit_hero', data).then((res) => {
-        this.issue = res.data.detailed_issue
+      this.$store.dispatch('editHero', payload).then(() => {
         this.loading = false
         this.closePicker()
-        this.$emit('issueInlineUpdated', res.data.simple_issue)
       })
     },
     editReporter (hero) {
       this.loading = true
       this.issue.reporter = hero.originalUser
-      var data = {
-        user_id: hero.originalUser.id
+      var payload = {
+        issueId: this.issue.id,
+        data: {
+          user_id: hero.originalUser.id
+        }
       }
-      this.$http.post('http://localhost:3001/issues/' + this.issue.id + '/edit_reporter', data).then((res) => {
-        this.issue = res.data
+      this.$store.dispatch('editReporter', payload).then(() => {
         this.loading = false
         this.closePicker()
       })
@@ -547,78 +608,105 @@ export default {
     editState (state) {
       this.loading = true
       this.issue.state = state.originalState.label
-      var data = {
-        status_id: state.originalState.id
+      var payload = {
+        issueId: this.issue.id,
+        data: {
+          status_id: state.originalState.id
+        }
       }
-      this.$http.post('http://localhost:3001/issues/' + this.issue.id + '/edit_status', data).then((res) => {
-        this.issue = res.data.detailed_issue
+      this.$store.dispatch('editState', payload).then(() => {
         this.loading = false
         this.closePicker()
-        this.$emit('issueStateUpdated', res.data.simple_issue)
       })
     },
     editType (type) {
       this.loading = true
       this.issue.issue_type = type.originalType.name
-      var data = {
-        type_id: type.originalType.id
+      var payload = {
+        issueId: this.issue.id,
+        data: {
+          type_id: type.originalType.id
+        }
       }
-
-      this.$http.post('http://localhost:3001/issues/' + this.issue.id + '/edit_type', data).then((res) => {
-        this.issue = res.data.detailed_issue
+      this.$store.dispatch('editType', payload).then(() => {
         this.loading = false
         this.closePicker()
-        this.$emit('issueInlineUpdated', res.data.simple_issue)
       })
     },
     editEpic (epic) {
       this.loading = true
-      var data = {}
+      var payload = {
+        issueId: this.issue.id,
+        data: {}
+      }
       if (epic.originalEpic) {
         this.issue.epic = epic.originalEpic.name
-        data = {
+        payload.data = {
           epic_id: epic.originalEpic.id
         }
       } else {
         this.issue.epic = null
       }
 
-      this.$http.post('http://localhost:3001/issues/' + this.issue.id + '/edit_epic', data).then((res) => {
-        this.issue = res.data.detailed_issue
+      this.$store.dispatch('editEpic', payload).then(() => {
         this.loading = false
         this.closePicker()
-        this.$emit('issueInlineUpdated', res.data.simple_issue)
       })
     },
     createEpic (epic) {
       this.loading = true
       this.issue.epic = epic
-      var data = {
-        epic_name: epic
+      var payload = {
+        issueId: this.issue.id,
+        data: {
+          epic_name: epic
+        }
       }
-
-      this.$http.post('http://localhost:3001/issues/' + this.issue.id + '/create_epic', data).then((res) => {
-        this.issue = res.data.detailed_issue
+      this.$store.dispatch('createEpic', payload).then(() => {
         this.loading = false
         this.closePicker()
-        this.$emit('issueInlineUpdated', res.data.simple_issue)
       })
     },
     editPoints (points) {
       this.loading = true
       this.issue.points = points
-      var data = {}
+      var payload = {
+        issueId: this.issue.id,
+        data: {}
+      }
       if (points) {
-        data = {
+        payload.data = {
           new_points: points
         }
       }
-      this.$http.post('http://localhost:3001/issues/' + this.issue.id + '/edit_points', data).then((res) => {
-        this.issue = res.data.detailed_issue
+      this.$store.dispatch('editPoints', payload).then(() => {
         this.loading = false
         this.closePicker()
-        this.$emit('issueInlineUpdated', res.data.simple_issue)
       })
+    },
+    toggleLabel (label) {
+      this.loading = true
+      if (label.originalLabel) {
+        var index = _.findIndex(this.issue.labels, (currentLabel) => {
+          return currentLabel.id === label.originalLabel.id
+        })
+
+        if (index >= 0) {
+          this.issue.labels.splice(index, 1)
+        } else {
+          this.issue.labels.push(label.originalLabel)
+        }
+      } else {
+        this.issue.labels = []
+        this.closePicker()
+      }
+    },
+    createLabel (label) {
+      this.loading = true
+      this.issue.labels.push({
+        label: label
+      })
+      this.closePicker()
     },
     closePicker () {
       this.currentPicker = null
@@ -636,12 +724,15 @@ export default {
     },
     reportedOnFromNow () {
       return moment(this.issue.created_at).fromNow()
-    }
+    },
+    ...mapState({
+      projectAssets: store => store.projectAssets,
+      issue: store => store.issue.detailedIssue
+    })
   },
   created () {
     window.addEventListener('keydown', this.checkClose)
-    this.$http.get('http://localhost:3001/issues/' + this.issueId).then((res) => {
-      this.issue = res.data
+    this.$store.dispatch('getIssue', this.issueId).then((res) => {
       this.initialLoading = false
     })
   },

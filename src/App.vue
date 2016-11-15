@@ -1,23 +1,70 @@
 <template>
-  <kanban :project-assets="assets"></kanban>
+  <div v-if="projectAssets">
+    <modal-card v-if="showDetail"
+                :issue-id="modalCardId"
+                @close="closeCardAndBack()"></modal-card>
+    <router-view @openCard="openCard"></router-view>
+  </div>
 </template>
 
 <script>
-import Kanban from './components/Kanban'
+import ModalCard from './components/ModalCard/ModalCard'
+import { mapState } from 'vuex'
 
 export default {
   data () {
     return {
-      assets: null
+      showDetail: false,
+      modalCardId: null
     }
   },
   components: {
-    Kanban
+    ModalCard
+  },
+  computed: mapState([
+    'projectAssets'
+  ]),
+  methods: {
+    openCard (id) {
+      this.showDetail = true
+      this.modalCardId = id
+      this.$router.push({name: 'directStory', params: {id: id}})
+    },
+    closeCard () {
+      this.showDetail = false
+      this.modalCardId = null
+    },
+    closeCardAndBack () {
+      this.showDetail = false
+      this.modalCardId = null
+      this.$router.go(-1)
+    }
+  },
+  watch: {
+    '$route' (to, from) {
+      if (from.name === 'directStory' && to.name !== 'directStory') {
+        this.closeCard()
+      } else if (to.name === 'directStory') {
+        this.openCard(to.params.id)
+      }
+    }
   },
   created () {
-    this.$http.get('http://localhost:3001/projects/1/assets').then((res) => {
-      this.assets = res.data
-    })
+    // TODO
+    this.$store.dispatch('getProjectAssets', {project_id: 1})
+
+    if (this.$route.name === 'directStory') {
+      this.openCard(this.$route.params.id)
+    }
+  },
+  beforeRouteEnter: (to, from, next) => {
+    // if they're visiting the root domain, redirect to kanban view
+    console.log('this is being called', to.name)
+    if (!to.name) {
+      next('/kanban')
+    } else {
+      next()
+    }
   }
 }
 </script>

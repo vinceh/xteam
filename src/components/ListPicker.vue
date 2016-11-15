@@ -41,6 +41,9 @@
            :class="cardIconClass(item.text)"
            v-if="listType === 'icon'"></i>
         {{ item.text }}
+        <i class="mdi mdi-check"
+           v-if="item.checked">
+        </i>
       </div>
     </div>
   </div>
@@ -59,7 +62,33 @@ export default {
       filterInput: ''
     }
   },
+  watch: {
+    listItems (newVal, oldVal) {
+      this.assignData(newVal)
+    }
+  },
   methods: {
+    assignData (newData) {
+      // TODO this is pretty fucking ugly
+      var newListItems = newData
+      if (this.emptyLabel) {
+        newListItems.splice(0, 0, {
+          text: this.emptyLabel
+        })
+      }
+      this.newListItems = newListItems
+      var query = this.filterInput.trim().toLowerCase()
+
+      // remember where the current highlighted index is before we
+      // set the new reactive data (thus removing the highlight)
+      var highlightedItemIndex = this.filteredItems.indexOf(this.highlightedItem)
+
+      this.filteredItems = this.newListItems.filter((item) => {
+        return item.text.toLowerCase().includes(query)
+      })
+
+      this.highlightedItem = this.filteredItems[highlightedItemIndex]
+    },
     itemClass (item, index) {
       return {
         highlighted: this.highlightedItem === item,
@@ -75,6 +104,9 @@ export default {
       } else if (this.allowCreate) {
         this.$emit('create', this.filterInput)
       }
+    },
+    clearInput () {
+      this.filterInput = ''
     },
     closePicker () {
       this.$emit('close')
@@ -142,6 +174,9 @@ export default {
   },
   beforeDestroy () {
     window.removeEventListener('mousedown', this.checkClose)
+  },
+  beforeUpdate () {
+    console.log('data got updated')
   }
 }
 </script>
@@ -213,7 +248,7 @@ export default {
   }
 
   .results-list {
-    max-height: 350px;
+    max-height: 300px;
     overflow-y: auto;
     .item {
       padding: 9px 11px;
@@ -238,6 +273,9 @@ export default {
       &.highlighted {
         // background-color: tint($orange, 93%);
         background-color: #fff7e2;
+      }
+      .mdi-check {
+        float: right;
       }
       .item-image {
         height: 16px;

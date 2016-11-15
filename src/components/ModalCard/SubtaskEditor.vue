@@ -9,7 +9,7 @@
      <div class="subtask-actions">
        <button type="button"
                class="primary"
-               @click="submitSubtask">
+               @click.stop.prevent="submitSubtask">
          {{ buttonName }}
        </button>
        <i class="mdi mdi-close cancel"

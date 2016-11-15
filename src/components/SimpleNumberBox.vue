@@ -3,6 +3,7 @@
          @keydown="checkInput"
          @keydown.esc.stop.prevent="close"
          @blur="submit"
+         @keydown.enter.stop.prevent="submit"
          v-model="newValue"
          >
 </template>
