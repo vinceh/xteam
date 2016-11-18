@@ -152,6 +152,31 @@ const actions = {
         resolve()
       })
     })
+  },
+  toggleLabel ({ commit }, payload) {
+    return new Promise((resolve, reject) => {
+      api.toggleLabel(payload.issueId, payload.data).then((res) => {
+        commit(types.UPDATED_SIMPLE_ISSUE, res.body)
+        resolve()
+      })
+    })
+  },
+  clearAllLabels ({ commit }, payload) {
+    return new Promise((resolve, reject) => {
+      api.clearAllLabels(payload.issueId).then((res) => {
+        commit(types.UPDATED_SIMPLE_ISSUE, res.body)
+        resolve()
+      })
+    })
+  },
+  createIssueLabel ({ commit }, payload) {
+    return new Promise((resolve, reject) => {
+      api.createIssueLabel(payload.issueId, payload.data).then((res) => {
+        commit(types.UPDATED_DETAILED_ISSUE, res.body.detailed_issue)
+        commit(types.RECEIVE_PROJECT_ASSETS, res.body.assets)
+        resolve()
+      })
+    })
   }
 }
 

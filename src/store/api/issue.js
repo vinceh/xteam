@@ -51,5 +51,14 @@ export default {
   },
   editPoints (issueId, data) {
     return $.post(`/issues/${issueId}/edit_points`, data)
+  },
+  toggleLabel (issueId, data) {
+    return $.post(`/issues/${issueId}/toggle_label`, data)
+  },
+  clearAllLabels (issueId) {
+    return $.post(`/issues/${issueId}/clear_all_labels`)
+  },
+  createIssueLabel (issueId, data) {
+    return $.post(`/issues/${issueId}/create_issue_label`, data)
   }
 }

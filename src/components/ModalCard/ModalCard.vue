@@ -326,6 +326,7 @@ import SimpleNumberBox from '../SimpleNumberBox'
 import _ from 'lodash'
 import { mapState } from 'vuex'
 
+/* eslint-disable no-redeclare */
 export default {
   props: ['issueId'],
   components: {
@@ -696,9 +697,28 @@ export default {
         } else {
           this.issue.labels.push(label.originalLabel)
         }
+
+        var payload = {
+          issueId: this.issue.id,
+          data: {
+            label_id: label.originalLabel.id
+          }
+        }
+
+        this.$store.dispatch('toggleLabel', payload).then(() => {
+          this.loading = false
+        })
       } else {
         this.issue.labels = []
         this.closePicker()
+
+        var payload = {
+          issueId: this.issue.id
+        }
+
+        this.$store.dispatch('clearAllLabels', payload).then(() => {
+          this.loading = false
+        })
       }
     },
     createLabel (label) {
@@ -707,6 +727,17 @@ export default {
         label: label
       })
       this.closePicker()
+
+      var payload = {
+        issueId: this.issue.id,
+        data: {
+          label: label
+        }
+      }
+
+      this.$store.dispatch('createIssueLabel', payload).then(() => {
+        this.loading = false
+      })
     },
     closePicker () {
       this.currentPicker = null

@@ -387,7 +387,7 @@ button {
       overflow: hidden;
       position: relative;
       min-height: 28px;
-      box-shadow: 0 1px 2px #ccc;
+      box-shadow: 0 4px 6px rgba(50,50,93,.11),0 1px 3px rgba(0,0,0,.08);
       &:hover {
         cursor: pointer;
         background-color: #f3f3f3;
@@ -408,7 +408,7 @@ button {
         border-radius: 4px;
         &:hover {
           cursor: pointer;
-          box-shadow: 0 0px 12px tint($dark, 85%);
+          box-shadow: 0 4px 6px rgba(50,50,93,.13),0 1px 3px rgba(0,0,0,.1);
           &.bug {
             border: 3px solid shade($red, 15%);
             // border-top: 3px solid shade(#FF715B, 5%);
@@ -1064,12 +1064,8 @@ button {
       border-bottom-left-radius: 5px;
       padding-top: 14px;
       .section {
-
         font-size: 15px;
         position: relative;
-        .picker-wrap {
-          left: 20px;
-        }
         .section-item {
           padding: 14px 20px;
           &.active {

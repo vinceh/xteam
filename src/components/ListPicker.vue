@@ -176,7 +176,6 @@ export default {
     window.removeEventListener('mousedown', this.checkClose)
   },
   beforeUpdate () {
-    console.log('data got updated')
   }
 }
 </script>
@@ -187,9 +186,9 @@ export default {
 
 .picker-wrap {
   position: absolute;
-  left: 0;
-  top: 100%;
-  box-shadow: 0 1px 5px #adb6bf;
+  left: 80%;
+  top: 0;
+  box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
   border: 1px solid #afbdca;
   border-radius: 4px;
   z-index: 999;
@@ -248,7 +247,7 @@ export default {
   }
 
   .results-list {
-    max-height: 300px;
+    max-height: 250px;
     overflow-y: auto;
     .item {
       padding: 9px 11px;
