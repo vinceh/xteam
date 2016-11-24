@@ -53,32 +53,39 @@
           <div class="heading">
             Checklist
           </div>
-          <div class="items">
-            <div class="item list-item"
-                 v-for="task in issue.subtasks"
-                 :class="{checked: task.completed, editing: editingSubtask(task)}"
-                 @click="beginEditSubtask(task)">
-              <div class="checkbox-input"
-                   @click.stop.prevent="toggleSubtask(task.id)">
-                <i class="mdi mdi-check"></i>
-              </div>
-              <div class="subtask-desc"
-                   v-if="!editingSubtask(task)">
-                {{ task.description }}
-              </div>
-              <div class="input-wrap">
+          <div class="items checklist-items" >
+            <div class="draggable-object">
+
+            </div>
+            <div class="draggables" v-dragula="dragOptions()">
+              <div class="item list-item"
+                   v-for="task in issue.subtasks"
+                   :class="{checked: task.completed, editing: editingSubtask(task)}"
+                   @click="beginEditSubtask(task)"
+                   :data-id="task.id"
+                   :key="task.id">
+                <div class="checkbox-input"
+                     @click.stop.prevent="toggleSubtask(task.id)">
+                  <i class="mdi mdi-check"></i>
+                </div>
+                <div class="subtask-desc"
+                     v-if="!editingSubtask(task)">
+                  {{ task.description }}
+                </div>
+                <div class="input-wrap">
                 <general-text-editor :text="task.description"
-                                     :allow-empty="false"
-                                     :allow-delete="true"
-                                     :allow-enter-submit="true"
-                                     :identifier="task"
-                                     @submit="editSubtask"
-                                     @cancel="stopEditingSubtask"
-                                     @delete="deleteSubtask"
-                                     v-if="editingSubtask(task)"
-                                     submit-label="Update"
-                                     placeholder="Type and press <Enter>">
-                </general-text-editor>
+                                       :allow-empty="false"
+                                       :allow-delete="true"
+                                       :allow-enter-submit="true"
+                                       :identifier="task"
+                                       @submit="editSubtask"
+                                       @cancel="stopEditingSubtask"
+                                       @delete="deleteSubtask"
+                                       v-if="editingSubtask(task)"
+                                       submit-label="Update"
+                                       placeholder="Type and press <Enter>">
+                  </general-text-editor>
+                </div>
               </div>
             </div>
             <div class="item add-item"
@@ -325,6 +332,8 @@ import ListPicker from '../ListPicker'
 import SimpleNumberBox from '../SimpleNumberBox'
 import _ from 'lodash'
 import { mapState } from 'vuex'
+import $ from 'jquery'
+// import dragula from 'dragula'
 
 /* eslint-disable no-redeclare */
 export default {
@@ -349,6 +358,37 @@ export default {
     }
   },
   methods: {
+    dragOptions () {
+      return {
+        options: {
+
+        },
+        events: (drake) => {
+          drake.on('drop', (el, target, source, sibling) => {
+            this.reorderSubtask(
+              parseInt(el.getAttribute('data-id')),
+              $(el).index()
+            )
+          })
+          drake.on('over', (el, container, source) => {
+            console.log('its over!')
+          })
+        }
+      }
+    },
+    reorderSubtask (subtaskId, newIndex) {
+      this.loading = true
+      var payload = {
+        issueId: this.issue.id,
+        data: {
+          subtask_id: subtaskId,
+          to_index: newIndex
+        }
+      }
+      this.$store.dispatch('reorderSubtask', payload).then(() => {
+        this.loading = false
+      })
+    },
     heroListItems () {
       return this.projectAssets.users.map((user) => {
         return {
@@ -743,6 +783,13 @@ export default {
       this.currentPicker = null
     }
   },
+  mounted () {
+    // dragula({
+    //   isContainer (el) {
+    //     return el.classList.contains('checklist-items')
+    //   }
+    // })
+  },
   computed: {
     heroTitle () {
       if (this.issue.assignees.length > 1) {
@@ -769,6 +816,8 @@ export default {
   },
   beforeDestroy () {
     window.removeEventListener('keydown', this.checkClose)
+  },
+  updated () {
   }
 }
 </script>

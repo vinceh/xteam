@@ -177,6 +177,14 @@ const actions = {
         resolve()
       })
     })
+  },
+  reorderSubtask ({ commit }, payload) {
+    return new Promise((resolve, reject) => {
+      api.reorderSubtask(payload.issueId, payload.data).then((res) => {
+        commit(types.UPDATED_DETAILED_ISSUE, res.body)
+        resolve()
+      })
+    })
   }
 }
 

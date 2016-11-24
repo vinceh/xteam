@@ -34,6 +34,22 @@ const router = new VueRouter({
   ]
 })
 
+import dragula from 'dragula'
+
+// not sure where to put this...
+Vue.directive('dragula', {
+  inserted: function ($el, binding) {
+    var drake = dragula({
+      isContainer (el) {
+        return el === $el
+      },
+      mirrorContainer: $el,
+      ...binding.value.options || {}
+    })
+    binding.value.events(drake)
+  }
+})
+
 /* eslint-disable no-new */
 new Vue({
   el: '#app',

@@ -59,7 +59,6 @@ export default {
   },
   beforeRouteEnter: (to, from, next) => {
     // if they're visiting the root domain, redirect to kanban view
-    console.log('this is being called', to.name)
     if (!to.name) {
       next('/kanban')
     } else {

@@ -142,9 +142,6 @@ export default {
     itemHover (item) {
       this.highlightedItem = item
     },
-    checkKeys (e) {
-      console.log('hey you pressed something')
-    },
     checkClose (e) {
       if (!this.$el.contains(e.target)) {
         this.closePicker()

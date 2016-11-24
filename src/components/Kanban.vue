@@ -68,10 +68,16 @@
 import Card from './Card'
 import _ from 'lodash'
 import { mapState } from 'vuex'
+import dragula from 'dragula'
 
 export default {
   components: {
     Card
+  },
+  data () {
+    return {
+      initialLoading: true
+    }
   },
   computed: mapState({
     projectAssets: state => state.projectAssets,
@@ -79,7 +85,6 @@ export default {
   }),
   methods: {
     openCard (id) {
-      console.log('opening card')
       this.$emit('openCard', id)
     },
     updateInlineIssue (newIssue) {
@@ -110,10 +115,39 @@ export default {
           this.stages[key].issues.push(newIssue)
         }
       })
+    },
+    initializeDragula () {
+      var drake = dragula({
+        isContainer: (el) => {
+          return el.classList.contains('cards-wrap')
+        },
+        mirrorContainer: this.$el.querySelector('.cards-wrap')
+      })
+      drake.on('over', (el, container, source) => {
+        if (container !== source) {
+          container.classList.add('drag-active')
+        }
+      })
+      drake.on('out', (el, container, source) => {
+        container.classList.remove('drag-active')
+      })
+      console.log(drake)
     }
   },
   created () {
-    this.$store.dispatch('getKanbanDetails', {project_id: 1})
+    this.$store.dispatch('getKanbanDetails', {project_id: 1}).then((res) => {
+      this.initialLoading = false
+    })
+  },
+  watch: {
+    initialLoading (newVal) {
+      if (!newVal) {
+        this.$el.querySelectorAll('.cards-wrap').forEach((el) => {
+          el.style.minHeight = `${window.innerHeight - 200}px`
+        })
+        this.initializeDragula()
+      }
+    }
   },
   mounted () {
   },
@@ -121,3 +155,9 @@ export default {
   }
 }
 </script>
+
+<style lang="scss">
+  .gu-transit {
+    opacity: 0;
+  }
+</style>

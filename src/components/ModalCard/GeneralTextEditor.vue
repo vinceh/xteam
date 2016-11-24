@@ -4,8 +4,7 @@
               v-model="newText"
               :placeholder="this.placeholder"
               @keydown.enter.stop.prevent="checkEnterSubmit"
-              @keydown.esc.stop.prevent="cancelAction"
-              v-on:keydown="checkSubmit($event)"></textarea>
+              @keydown.esc.stop.prevent="cancelAction"></textarea>
     <div class="actions">
       <button type="button"
               class="primary"
@@ -35,11 +34,6 @@ export default {
     }
   },
   methods: {
-    checkSubmit (e) {
-      if ((e.metaKey || e.ctrlKey) && e.keyCode === 13) {
-        console.log('yup submitting')
-      }
-    },
     checkEnterSubmit () {
       if (this.allowEnterSubmit) {
         this.submitAction()

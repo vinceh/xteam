@@ -60,5 +60,8 @@ export default {
   },
   createIssueLabel (issueId, data) {
     return $.post(`/issues/${issueId}/create_issue_label`, data)
+  },
+  reorderSubtask (issueId, data) {
+    return $.post(`/issues/${issueId}/reorder_subtask`, data)
   }
 }
