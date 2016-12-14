@@ -10,6 +10,7 @@
     "lint": "eslint --ext .js,.vue src"
   },
   "dependencies": {
+    "auth0-lock": "^10.7.0",
     "autosize": "^3.0.17",
     "dragula": "^3.7.2",
     "jquery": "^3.1.1",
